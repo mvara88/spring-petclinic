@@ -18,6 +18,9 @@ package org.springframework.samples.petclinic;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledInNativeImage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
@@ -69,6 +73,18 @@ class MySqlIntegrationTests {
 		RestTemplate template = builder.baseUri("http://localhost:" + port).build();
 		ResponseEntity<String> result = template.exchange(RequestEntity.get("/owners/1").build(), String.class);
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+	}
+
+	@Test
+	void ownersSearchByCity() {
+		RestTemplate template = builder.baseUri("http://localhost:" + port).build();
+		ResponseEntity<List<Map<String, Object>>> result = template.exchange(
+				RequestEntity.get("/api/v1/owners/search?city={city}", "madison").build(),
+				new ParameterizedTypeReference<>() {
+				});
+		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(result.getBody()).extracting(owner -> owner.get("lastName"))
+			.containsExactly("Escobito", "Franklin", "McTavish", "Schroeder");
 	}
 
 }

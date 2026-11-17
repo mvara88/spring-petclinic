@@ -55,6 +55,45 @@ docker images | grep petclinic
 docker run -p 8080:8080 docker.io/library/spring-petclinic:latest
 ```
 
+## REST API
+
+Besides the HTML pages, Petclinic exposes a few read-only JSON endpoints:
+
+| Endpoint | Description |
+|---|---|
+| `GET /vets` | All vets with their specialties |
+| `GET /api/v1/owners/export` | All owners, ordered by id, with their pets and visits |
+| `GET /api/v1/owners/search?city={city}` | Owners whose city starts with `{city}`, with their pets and visits |
+
+Owners are returned in the same shape by both owner endpoints:
+
+```json
+[
+  {
+    "id": 1, "firstName": "George", "lastName": "Franklin",
+    "address": "110 W. Liberty St.", "city": "Madison", "telephone": "6085551023",
+    "pets": [
+      { "id": 1, "name": "Leo", "birthDate": "2010-09-07", "type": "cat", "visits": [] }
+    ]
+  }
+]
+```
+
+### Searching owners by city
+
+```bash
+curl 'http://localhost:8080/api/v1/owners/search?city=madison'
+```
+
+- Matching is case-insensitive and on the start of the city name, so `mad` also matches `Madison`. Surrounding whitespace is ignored.
+- Results are ordered by last name, then first name. No match returns `[]`.
+- `city` is required, must not be blank, must be at most 80 characters, and may only contain letters, spaces, periods (`.`), apostrophes (`'`) and hyphens (`-`).
+- An invalid `city` returns `400 Bad Request` with an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem body, for example:
+
+```json
+{ "title": "Invalid owner search", "status": 400, "detail": "city must not be blank", "instance": "/api/v1/owners/search" }
+```
+
 ## In case you find a bug/suggested improvement for Spring Petclinic
 
 Our issue tracker is available [here](https://github.com/spring-projects/spring-petclinic/issues).

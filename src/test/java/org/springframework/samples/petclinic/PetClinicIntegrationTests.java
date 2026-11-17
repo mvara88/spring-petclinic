@@ -17,6 +17,7 @@
 package org.springframework.samples.petclinic;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.samples.petclinic.vet.VetRepository;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "logging.level.sql=DEBUG")
@@ -69,6 +71,26 @@ public class PetClinicIntegrationTests {
 		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(result.getBody()).isNotEmpty();
 		assertThat(result.getBody().get(0)).containsEntry("id", 1).containsEntry("lastName", "Franklin");
+	}
+
+	@Test
+	void ownersSearchByCity() {
+		RestTemplate template = builder.baseUri("http://localhost:" + port).build();
+		ResponseEntity<List<Map<String, Object>>> result = template.exchange(
+				RequestEntity.get("/api/v1/owners/search?city={city}", "madison").build(),
+				new ParameterizedTypeReference<>() {
+				});
+		assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(result.getBody()).extracting(owner -> owner.get("lastName"))
+			.containsExactly("Escobito", "Franklin", "McTavish", "Schroeder");
+	}
+
+	@Test
+	void ownersSearchByCityRejectsInvalidCity() {
+		RestTemplate template = builder.baseUri("http://localhost:" + port).build();
+		assertThatExceptionOfType(HttpClientErrorException.BadRequest.class)
+			.isThrownBy(() -> template.getForEntity("/api/v1/owners/search?city={city}", String.class, "Mad%"))
+			.satisfies(ex -> assertThat(ex.getResponseBodyAsString()).contains("may only contain letters"));
 	}
 
 	@Test
