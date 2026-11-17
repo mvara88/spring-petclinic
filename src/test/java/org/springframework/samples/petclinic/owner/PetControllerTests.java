@@ -36,6 +36,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -269,6 +271,26 @@ class PetControllerTests {
 				.andExpect(view().name("pets/createOrUpdatePetForm"));
 		}
 
+	}
+
+	@Test
+	void initCreationFormReturnsNotFoundForUnknownOwner() throws Exception {
+		mockMvc.perform(get("/owners/{ownerId}/pets/new", 99)).andExpect(status().isNotFound());
+	}
+
+	@Test
+	void initUpdateFormReturnsNotFoundForUnknownPet() throws Exception {
+		mockMvc.perform(get("/owners/{ownerId}/pets/{petId}/edit", TEST_OWNER_ID, 99)).andExpect(status().isNotFound());
+	}
+
+	@Test
+	void processUpdateFormReturnsNotFoundForUnknownPet() throws Exception {
+		mockMvc
+			.perform(post("/owners/{ownerId}/pets/{petId}/edit", TEST_OWNER_ID, 99).param("name", "Betty")
+				.param("type", "hamster")
+				.param("birthDate", "2015-02-12"))
+			.andExpect(status().isNotFound());
+		verify(this.owners, never()).saveAndFlush(any(Owner.class));
 	}
 
 }

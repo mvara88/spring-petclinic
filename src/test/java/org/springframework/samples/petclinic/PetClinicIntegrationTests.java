@@ -17,6 +17,7 @@
 package org.springframework.samples.petclinic;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +27,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.samples.petclinic.vet.VetRepository;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "logging.level.sql=DEBUG")
@@ -65,6 +68,15 @@ public class PetClinicIntegrationTests {
 
 	public static void main(String[] args) {
 		SpringApplication.run(PetClinicApplication.class, "--spring.docker.compose.lifecycle-management=NONE");
+	}
+
+	@Test
+	void unknownOwnerRendersNotFoundPage() {
+		RestTemplate template = builder.baseUri("http://localhost:" + port).build();
+		assertThatExceptionOfType(HttpClientErrorException.NotFound.class)
+			.isThrownBy(() -> template.exchange(RequestEntity.get("/owners/99").accept(MediaType.TEXT_HTML).build(),
+					String.class))
+			.satisfies(ex -> assertThat(ex.getResponseBodyAsString()).contains("The requested page was not found."));
 	}
 
 }
