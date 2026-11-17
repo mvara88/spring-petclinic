@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.springframework.dao.DataIntegrityViolationException;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.samples.petclinic.owner.Owner;
 import org.springframework.samples.petclinic.owner.OwnerRepository;
 import org.springframework.samples.petclinic.owner.Pet;
@@ -93,6 +95,19 @@ class ClinicServiceTests {
 
 		owners = this.owners.findByLastNameStartingWith("Daviss", pageable);
 		assertThat(owners).isEmpty();
+	}
+
+	@Test
+	void shouldFindOwnersByCityIgnoringCase() {
+		List<Owner> owners = this.owners.findByCityStartingWithIgnoreCase("madison", Sort.by("lastName"));
+		assertThat(owners).extracting(Owner::getLastName)
+			.containsExactly("Escobito", "Franklin", "McTavish", "Schroeder");
+
+		assertThat(this.owners.findByCityStartingWithIgnoreCase("MON", Sort.by("lastName")))
+			.extracting(Owner::getLastName)
+			.containsExactly("Black", "Coleman");
+
+		assertThat(this.owners.findByCityStartingWithIgnoreCase("Atlantis", Sort.by("lastName"))).isEmpty();
 	}
 
 	@Test

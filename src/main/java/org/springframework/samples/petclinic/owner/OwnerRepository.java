@@ -15,10 +15,12 @@
  */
 package org.springframework.samples.petclinic.owner;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -43,6 +45,15 @@ public interface OwnerRepository extends JpaRepository<Owner, Integer> {
 	 * found)
 	 */
 	Page<Owner> findByLastNameStartingWith(String lastName, Pageable pageable);
+
+	/**
+	 * Retrieve {@link Owner}s from the data store by city, returning all owners whose
+	 * city <i>starts</i> with the given value, ignoring case.
+	 * @param city Value to search for
+	 * @param sort the order of the results
+	 * @return a List of matching {@link Owner}s (or an empty List if none found)
+	 */
+	List<Owner> findByCityStartingWithIgnoreCase(String city, Sort sort);
 
 	/**
 	 * Retrieve an {@link Owner} from the data store by id.
