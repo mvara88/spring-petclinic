@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -43,13 +44,19 @@ class VetController {
 	}
 
 	@GetMapping("/vets.html")
-	public String showVetList(@RequestParam(defaultValue = "1") int page, Model model,
-			RedirectAttributes redirectAttributes) {
-		Page<Vet> paginated = findPaginated(page);
+	public String showVetList(@RequestParam(defaultValue = "1") int page,
+			@RequestParam(required = false) String specialty, Model model, RedirectAttributes redirectAttributes) {
+		String specialtyFilter = StringUtils.hasText(specialty) ? specialty.strip() : null;
+		Page<Vet> paginated = findPaginated(page, specialtyFilter);
 		if (page < 1 || page > Math.max(paginated.getTotalPages(), 1)) {
 			redirectAttributes.addAttribute("page", 1);
+			if (specialtyFilter != null) {
+				redirectAttributes.addAttribute("specialty", specialtyFilter);
+			}
 			return "redirect:/vets.html";
 		}
+		model.addAttribute("specialties", this.vetRepository.findSpecialties());
+		model.addAttribute("selectedSpecialty", specialtyFilter);
 		return addPaginationModel(page, paginated, model);
 	}
 
@@ -62,11 +69,14 @@ class VetController {
 		return "vets/vetList";
 	}
 
-	private Page<Vet> findPaginated(int page) {
+	private Page<Vet> findPaginated(int page, String specialty) {
 		int pageSize = 5;
 		int safePage = Math.max(page, 1);
 		Pageable pageable = PageRequest.of(safePage - 1, pageSize);
-		return vetRepository.findAll(pageable);
+		if (specialty == null) {
+			return vetRepository.findAll(pageable);
+		}
+		return vetRepository.findBySpecialtyName(specialty, pageable);
 	}
 
 	@GetMapping({ "/vets" })
