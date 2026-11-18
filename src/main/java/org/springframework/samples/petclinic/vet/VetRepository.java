@@ -64,7 +64,7 @@ public interface VetRepository extends Repository<Vet, Integer> {
 	 * @param pageable the paging information
 	 * @return a page of matching <code>Vet</code>s
 	 */
-	@Query(value = "SELECT DISTINCT v FROM Vet v JOIN v.specialties s WHERE s.name = :specialty",
+	@Query(value = "SELECT DISTINCT v FROM Vet v JOIN v.specialties s WHERE s.name = :specialty ORDER BY v.id",
 			countQuery = "SELECT COUNT(DISTINCT v) FROM Vet v JOIN v.specialties s WHERE s.name = :specialty")
 	@Transactional(readOnly = true)
 	Page<Vet> findBySpecialtyName(@Param("specialty") String specialty, Pageable pageable) throws DataAccessException;

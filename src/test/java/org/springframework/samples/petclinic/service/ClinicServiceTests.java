@@ -209,11 +209,10 @@ class ClinicServiceTests {
 	void shouldFindVetsBySpecialtyName() {
 		Page<Vet> surgeons = this.vets.findBySpecialtyName("surgery", PageRequest.of(0, 5));
 		assertThat(surgeons.getTotalElements()).isEqualTo(2);
-		assertThat(surgeons.getContent()).extracting(Vet::getLastName).containsExactlyInAnyOrder("Douglas", "Ortega");
+		assertThat(surgeons.getContent()).extracting(Vet::getLastName).containsExactly("Douglas", "Ortega");
 
 		Page<Vet> radiologists = this.vets.findBySpecialtyName("radiology", PageRequest.of(0, 5));
-		assertThat(radiologists.getContent()).extracting(Vet::getLastName)
-			.containsExactlyInAnyOrder("Leary", "Stevens");
+		assertThat(radiologists.getContent()).extracting(Vet::getLastName).containsExactly("Leary", "Stevens");
 
 		assertThat(this.vets.findBySpecialtyName("unknown", PageRequest.of(0, 5))).isEmpty();
 	}
