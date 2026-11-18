@@ -30,6 +30,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase.Replace;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.samples.petclinic.owner.Owner;
 import org.springframework.samples.petclinic.owner.OwnerRepository;
@@ -37,6 +38,7 @@ import org.springframework.samples.petclinic.owner.Pet;
 import org.springframework.samples.petclinic.owner.PetType;
 import org.springframework.samples.petclinic.owner.PetTypeRepository;
 import org.springframework.samples.petclinic.owner.Visit;
+import org.springframework.samples.petclinic.model.NamedEntity;
 import org.springframework.samples.petclinic.vet.Vet;
 import org.springframework.samples.petclinic.vet.VetRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -201,6 +203,24 @@ class ClinicServiceTests {
 		owner6 = optionalOwner.get();
 		pet7 = owner6.getPet(7);
 		assertThat(pet7.getName()).isEqualTo(newName);
+	}
+
+	@Test
+	void shouldFindVetsBySpecialtyName() {
+		Page<Vet> surgeons = this.vets.findBySpecialtyName("surgery", PageRequest.of(0, 5));
+		assertThat(surgeons.getTotalElements()).isEqualTo(2);
+		assertThat(surgeons.getContent()).extracting(Vet::getLastName).containsExactly("Douglas", "Ortega");
+
+		Page<Vet> radiologists = this.vets.findBySpecialtyName("radiology", PageRequest.of(0, 5));
+		assertThat(radiologists.getContent()).extracting(Vet::getLastName).containsExactly("Leary", "Stevens");
+
+		assertThat(this.vets.findBySpecialtyName("unknown", PageRequest.of(0, 5))).isEmpty();
+	}
+
+	@Test
+	void shouldFindSpecialtiesOrderedByName() {
+		assertThat(this.vets.findSpecialties()).extracting(NamedEntity::getName)
+			.containsExactly("dentistry", "radiology", "surgery");
 	}
 
 	@Test

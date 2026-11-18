@@ -23,6 +23,7 @@ import org.junit.jupiter.api.condition.DisabledInNativeImage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.aot.DisabledInAotMode;
@@ -33,8 +34,14 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -78,7 +85,22 @@ class VetControllerTests {
 		given(this.vets.findAll()).willReturn(Lists.newArrayList(james(), helen()));
 		given(this.vets.findAll(any(Pageable.class)))
 			.willReturn(new PageImpl<Vet>(Lists.newArrayList(james(), helen())));
+		given(this.vets.findSpecialties()).willReturn(List.of(radiology(), surgery()));
 
+	}
+
+	private Specialty radiology() {
+		Specialty radiology = new Specialty();
+		radiology.setId(1);
+		radiology.setName("radiology");
+		return radiology;
+	}
+
+	private Specialty surgery() {
+		Specialty surgery = new Specialty();
+		surgery.setId(2);
+		surgery.setName("surgery");
+		return surgery;
 	}
 
 	@Test
@@ -87,8 +109,56 @@ class VetControllerTests {
 		mockMvc.perform(MockMvcRequestBuilders.get("/vets.html?page=1"))
 			.andExpect(status().isOk())
 			.andExpect(model().attributeExists("listVets"))
+			.andExpect(model().attribute("specialties", hasSize(2)))
+			.andExpect(model().attribute("selectedSpecialty", nullValue()))
 			.andExpect(view().name("vets/vetList"));
 
+	}
+
+	@Test
+	void showVetListFilteredBySpecialty() throws Exception {
+		given(this.vets.findBySpecialtyName(eq("radiology"), any(Pageable.class)))
+			.willReturn(new PageImpl<>(List.of(helen())));
+
+		mockMvc.perform(get("/vets.html").param("specialty", "radiology"))
+			.andExpect(status().isOk())
+			.andExpect(model().attribute("listVets", hasSize(1)))
+			.andExpect(model().attribute("selectedSpecialty", "radiology"))
+			.andExpect(view().name("vets/vetList"))
+			.andExpect(content().string(containsString("<option value=\"radiology\" selected=\"selected\">")));
+
+		verify(this.vets, never()).findAll(any(Pageable.class));
+	}
+
+	@Test
+	void showVetListWithBlankSpecialtyShowsAllVets() throws Exception {
+		mockMvc.perform(get("/vets.html").param("specialty", "  "))
+			.andExpect(status().isOk())
+			.andExpect(model().attribute("listVets", hasSize(2)))
+			.andExpect(model().attribute("selectedSpecialty", nullValue()));
+
+		verify(this.vets, never()).findBySpecialtyName(any(), any(Pageable.class));
+	}
+
+	@Test
+	void showVetListPaginationLinksKeepSpecialtyFilter() throws Exception {
+		given(this.vets.findBySpecialtyName(eq("radiology"), any(Pageable.class)))
+			.willReturn(new PageImpl<>(List.of(helen()), PageRequest.of(0, 5), 6));
+
+		mockMvc.perform(get("/vets.html").param("specialty", "radiology"))
+			.andExpect(status().isOk())
+			.andExpect(model().attribute("totalPages", 2))
+			.andExpect(content().string(containsString("/vets.html?page=2&amp;specialty=radiology")));
+	}
+
+	@Test
+	void showVetListRedirectKeepsSpecialtyFilter() throws Exception {
+		given(this.vets.findBySpecialtyName(eq("radiology"), any(Pageable.class)))
+			.willReturn(new PageImpl<>(List.of(helen())));
+
+		mockMvc.perform(get("/vets.html").param("page", "3").param("specialty", "radiology"))
+			.andExpect(status().is3xxRedirection())
+			.andExpect(redirectedUrl("/vets.html?page=1&specialty=radiology"));
 	}
 
 	@Test
